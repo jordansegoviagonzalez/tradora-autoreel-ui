@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tradora AutoReel</title>
+  <link rel="stylesheet" href="./src/styles.css">
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">AutoReel <span class="badge">AI</span></div>
+      <button id="new-chat-btn" class="btn-new-chat">
+        <i class="fas fa-plus"></i> New Session
+      </button>
+    </div>
+
+    <div class="session-list" id="session-list">
+      <!-- Session items injected here -->
+    </div>
+
+    <div class="sidebar-footer">
+      <button id="settings-trigger" class="btn-sidebar-footer">
+        <i class="fas fa-cog"></i> Settings
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Chat Area -->
+  <main id="main-content">
+    
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <button id="mobile-menu-btn"><i class="fas fa-bars"></i></button>
+      <span>Tradora AutoReel</span>
+    </header>
+
+    <!-- Chat Stream -->
+    <div id="chat-stream" class="chat-stream">
+      <!-- Messages injected here -->
+      <div class="welcome-screen" id="welcome-screen">
+        <h1>Tradora AutoReel</h1>
+        <p>Upload photos and describe the vibe to generate a professional walkaround video.</p>
+      </div>
+    </div>
+
+    <!-- Composer Area -->
+    <div class="composer-container">
+      
+      <!-- Attachment Preview Bar -->
+      <div id="attachment-bar" class="attachment-bar hidden">
+        <!-- Thumbnails -->
+      </div>
+
+      <!-- Input Bar -->
+      <div class="input-bar">
+        <input type="file" id="file-input" multiple accept="image/*" class="hidden">
+        
+        <button id="attach-btn" class="btn-icon" title="Select Photos">
+          <i class="fas fa-images"></i>
+          <span id="photo-badge" class="badge-count hidden">0</span>
+        </button>
+
+        <textarea id="chat-input" rows="1" placeholder="Describe the narration style..."></textarea>
+
+        <div class="action-buttons">
+          <button id="send-btn" class="btn-send" title="Send Message">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+          <button id="generate-btn" class="btn-generate hidden" title="Generate Video" disabled>
+            <i class="fas fa-magic"></i>
+          </button>
+        </div>
+      </div>
+      <div class="disclaimer">AI can make mistakes. Review generated scripts.</div>
+    </div>
+
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Connection Settings</h2>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Engine URL</label>
+          <input type="url" id="engine-url" placeholder="http://localhost:8000">
+        </div>
+        <div class="form-group">
+          <label>API Key (Optional)</label>
+          <input type="password" id="api-key" placeholder="sk-...">
+        </div>
+        <div class="connection-test-row">
+           <button id="test-connection-btn" class="btn-secondary">Test Connection</button>
+           <span id="connection-status"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="save-settings-btn" class="btn-primary">Save & Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
