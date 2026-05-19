@@ -3,107 +3,302 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tradora AutoReel</title>
+  <title>AutoReel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./src/styles.css">
-  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-
-  <!-- Sidebar -->
-  <aside id="sidebar">
-    <div class="sidebar-header">
-      <div class="logo">AutoReel <span class="badge">AI</span></div>
-      <button id="new-chat-btn" class="btn-new-chat">
-        <i class="fas fa-plus"></i> New Session
+  <aside id="app-sidebar">
+    <div class="sidebar-top">
+      <button id="sidebar-brand" class="sidebar-brand" type="button">
+        <span class="brand-mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        <span>AutoReel</span>
+      </button>
+      <button id="new-chat-btn" class="sidebar-action primary" type="button">
+        <i class="fas fa-plus"></i>
+        <span>New Chat</span>
+      </button>
+      <button class="sidebar-action" type="button">
+        <i class="fas fa-search"></i>
+        <span>Search</span>
       </button>
     </div>
 
-    <div class="session-list" id="session-list">
-      <!-- Session items injected here -->
-    </div>
-
-    <div class="sidebar-footer">
-      <button id="settings-trigger" class="btn-sidebar-footer">
-        <i class="fas fa-cog"></i> Settings
+    <nav class="sidebar-section" aria-label="Projects">
+      <div class="sidebar-label">Projects</div>
+      <button id="project-my-videos-btn" class="sidebar-action project-link" type="button" data-project="My Videos">
+        <i class="fas fa-video"></i>
+        <span>My Videos</span>
       </button>
-    </div>
+    </nav>
+
+    <section class="sidebar-section history-section" aria-label="Chat history">
+      <div class="sidebar-label">History</div>
+      <div id="session-list" class="session-list"></div>
+    </section>
   </aside>
 
-  <!-- Main Chat Area -->
-  <main id="main-content">
-    
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-      <button id="mobile-menu-btn"><i class="fas fa-bars"></i></button>
-      <span>Tradora AutoReel</span>
-    </header>
-
-    <!-- Chat Stream -->
-    <div id="chat-stream" class="chat-stream">
-      <!-- Messages injected here -->
-      <div class="welcome-screen" id="welcome-screen">
-        <h1>Tradora AutoReel</h1>
-        <p>Upload photos and describe the vibe to generate a professional walkaround video.</p>
+  <header id="app-header">
+    <div class="header-left">
+      <h1 id="brand-home">AutoReel</h1>
+      <div id="engine-status">
+        <span class="status-dot"></span>
+        <span class="status-text">Engine Status</span>
       </div>
     </div>
-
-    <!-- Composer Area -->
-    <div class="composer-container">
-      
-      <!-- Attachment Preview Bar -->
-      <div id="attachment-bar" class="attachment-bar hidden">
-        <!-- Thumbnails -->
-      </div>
-
-      <!-- Input Bar -->
-      <div class="input-bar">
-        <input type="file" id="file-input" multiple accept="image/*" class="hidden">
-        
-        <button id="attach-btn" class="btn-icon" title="Select Photos">
-          <i class="fas fa-images"></i>
-          <span id="photo-badge" class="badge-count hidden">0</span>
-        </button>
-
-        <textarea id="chat-input" rows="1" placeholder="Describe the narration style..."></textarea>
-
-        <div class="action-buttons">
-          <button id="send-btn" class="btn-send" title="Send Message">
-            <i class="fas fa-paper-plane"></i>
-          </button>
-          <button id="generate-btn" class="btn-generate hidden" title="Generate Video" disabled>
-            <i class="fas fa-magic"></i>
-          </button>
+    <div class="header-right">
+      <div id="profile-menu-container">
+        <button id="profile-menu-trigger"><i class="fas fa-user-circle"></i></button>
+        <div id="profile-menu" class="hidden">
+          <a href="#" id="menu-my-videos">My Videos</a>
+          <a href="#" id="menu-settings">Settings</a>
+          <a href="#" id="menu-engine-monitor">Engine Monitor</a>
         </div>
       </div>
-      <div class="disclaimer">AI can make mistakes. Review generated scripts.</div>
+    </div>
+  </header>
+
+  <main id="main-container">
+    <div id="create-view" class="view">
+      <div id="chat-and-generate-view">
+          <div class="chat-hero" id="chat-hero">
+              <div class="hero-kicker">AutoReel AI</div>
+              <h2>What vehicle video are we building?</h2>
+          </div>
+          <div id="chat-history"></div>
+          <div id="composer">
+              <input type="file" id="file-input" multiple accept="image/*" class="hidden">
+              <div id="drop-zone">
+                  <div id="preview-grid"></div>
+                  <div class="drop-message">
+                      <i class="fas fa-images"></i>
+                      <span>Drag & drop photos here, or click to select</span>
+                  </div>
+              </div>
+              <textarea
+                id="instructions-input"
+                placeholder="Start typing to chat with AutoReel, or attach photos to generate a video..."
+                spellcheck="true"
+                autocorrect="on"
+                autocapitalize="sentences"
+                autocomplete="on"
+                enterkeyhint="send"
+              ></textarea>
+              <div id="autocomplete-panel" class="autocomplete-panel hidden"></div>
+              <div id="composer-actions">
+                  <div class="composer-tools">
+                    <button id="attach-trigger" class="icon-btn" type="button" title="Attach photos" aria-label="Attach photos"><i class="fas fa-paperclip"></i></button>
+                    <span id="photo-count-label"></span>
+                  </div>
+                  <button id="send-chat-btn" class="icon-btn send-action" disabled title="Send" aria-label="Send"><i class="fas fa-arrow-up"></i></button>
+                  <button id="review-job-btn" class="btn-primary hidden" disabled><i class="fas fa-magic"></i> Review Job</button>
+              </div>
+          </div>
+      </div>
+      
+      <div id="axia-review-card" class="hidden">
+          <h2><i class="fas fa-clipboard-check"></i> Confirm Generation</h2>
+          <p>AutoReel will generate a video based on the following instructions:</p>
+          <div id="axia-review-details"></div>
+          <div class="review-actions">
+              <button id="submit-job-btn" class="btn-primary">Generate Video</button>
+              <button class="btn-secondary" onclick="document.getElementById('axia-review-card').classList.add('hidden'); document.getElementById('chat-and-generate-view').classList.remove('hidden');">Cancel</button>
+          </div>
+      </div>
+
+      <div id="results-view" class="hidden">
+        <div id="pipeline-card">
+            <h3><i class="fas fa-cogs"></i> Generation Pipeline</h3>
+            <p id="job-id-display"></p>
+            <div id="pipeline-empty-state">Waiting for job to start...</div>
+            <div id="pipeline-stages">
+                <div class="stage" data-stage="ingest">Ingest</div>
+                <div class="stage" data-stage="vision">Vision Analysis</div>
+                <div class="stage" data-stage="script">Scripting</div>
+                <div class="stage" data-stage="tts">Narration</div>
+                <div class="stage" data-stage="render">Rendering</div>
+            </div>
+            <p id="pipeline-error" class="hidden"></p>
+        </div>
+
+        <div id="artifacts-card" class="hidden">
+            <h3><i class="fas fa-video"></i> Generation Complete</h3>
+            <video id="primary-video-preview" controls></video>
+            <h4>Generated Script</h4>
+            <pre id="script-preview"></pre>
+            <h4>Artifacts</h4>
+            <div id="artifact-links"></div>
+            <button id="generate-another-btn" class="btn-primary hidden">Generate Another</button>
+        </div>
+      </div>
     </div>
 
+    <div id="my-videos-view" class="view hidden">
+      <div class="view-header-row">
+        <div>
+          <p class="view-kicker">Library</p>
+          <h2>My Videos</h2>
+        </div>
+        <button class="back-to-create btn-primary">New Video</button>
+      </div>
+      <div id="video-library-grid" class="video-grid">
+        <!-- Videos will be injected here -->
+      </div>
+    </div>
+
+    <div id="engine-monitor-view" class="view hidden">
+      <h2>Engine Monitor</h2>
+      <div class="monitor-grid">
+        <div>Current Engine URL</div><div id="monitor-engine-url"></div>
+        <div>Auth State</div><div id="monitor-auth-state"></div>
+        <div>Last Request Type</div><div id="monitor-request-type"></div>
+        <div>Last Request URL</div><div id="monitor-request-url"></div>
+        <div>Last Response Status</div><div id="monitor-response-status"></div>
+        <div>Last Error Summary</div><div id="monitor-error-summary"></div>
+      </div>
+      <button class="back-to-create">Back</button>
+    </div>
   </main>
 
-  <!-- Settings Modal -->
   <div id="settings-modal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content settings-panel">
       <div class="modal-header">
-        <h2>Connection Settings</h2>
+        <h2>Settings</h2>
         <button class="close-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label>Engine URL</label>
-          <input type="url" id="engine-url" placeholder="http://localhost:8000">
-        </div>
-        <div class="form-group">
-          <label>API Key (Optional)</label>
-          <input type="password" id="api-key" placeholder="sk-...">
-        </div>
-        <div class="connection-test-row">
-           <button id="test-connection-btn" class="btn-secondary">Test Connection</button>
-           <span id="connection-status"></span>
+        <div class="settings-layout">
+          <aside class="settings-nav" aria-label="Settings sections">
+            <button class="settings-nav-item active" type="button">Account</button>
+            <button class="settings-nav-item" type="button">Personalization</button>
+            <button class="settings-nav-item" type="button">Memory</button>
+            <button class="settings-nav-item" type="button">Notifications</button>
+            <button class="settings-nav-item" type="button">Data Controls</button>
+            <button class="settings-nav-item" type="button">Archived Videos</button>
+            <button class="settings-nav-item" type="button">Engine</button>
+          </aside>
+
+          <div class="settings-content">
+            <section class="settings-section">
+              <div>
+                <h3>Profile</h3>
+                <p>Manage the user details attached to this AutoReel workspace.</p>
+              </div>
+              <div class="account-card">
+                <div class="account-avatar">T</div>
+                <div class="account-fields">
+                  <label>
+                    Name
+                    <input id="settings-user-name" type="text" value="Tradora User">
+                  </label>
+                  <label>
+                    Email
+                    <input id="settings-user-email" type="email" value="user@tradora.ai">
+                  </label>
+                  <span class="role-pill">Admin</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <div>
+                <h3>Personalization</h3>
+                <p>Default tone and generation preferences for dealership videos.</p>
+              </div>
+              <label class="setting-row">
+                <span>Dealer-focused responses</span>
+                <input id="pref-dealer-focused" type="checkbox" checked>
+              </label>
+              <label class="setting-row">
+                <span>Use concise sales scripts</span>
+                <input id="pref-concise-scripts" type="checkbox" checked>
+              </label>
+            </section>
+
+            <section class="settings-section">
+              <div>
+                <h3>Memory</h3>
+                <p>Let AutoReel remember reusable style preferences across chats.</p>
+              </div>
+              <label class="setting-row">
+                <span>Memory enabled</span>
+                <input id="pref-memory-enabled" type="checkbox" checked>
+              </label>
+            </section>
+
+            <section class="settings-section">
+              <div>
+                <h3>Notifications</h3>
+                <p>Control alerts for completed videos and failed generation jobs.</p>
+              </div>
+              <label class="setting-row">
+                <span>Email completed videos</span>
+                <input id="pref-email-completed" type="checkbox">
+              </label>
+              <label class="setting-row">
+                <span>Notify on engine errors</span>
+                <input id="pref-notify-errors" type="checkbox" checked>
+              </label>
+            </section>
+
+            <section class="settings-section">
+              <div>
+                <h3>Data Controls</h3>
+                <p>Manage local chat history, uploaded media references, and export preferences.</p>
+              </div>
+              <div class="settings-actions">
+                <button id="export-data-btn" class="btn-secondary" type="button">Export Data</button>
+                <button id="clear-history-btn" class="btn-secondary" type="button">Clear Local History</button>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <div>
+                <h3>Archived Videos</h3>
+                <p>Generated videos you archive from My Videos will appear here.</p>
+              </div>
+              <div id="archived-videos-list" class="settings-empty">No archived videos yet.</div>
+            </section>
+
+            <section class="settings-section">
+              <div>
+                <h3>Engine</h3>
+                <p>Connection details for the generation and chat engine.</p>
+              </div>
+              <div class="form-group">
+                <label>Engine URL</label>
+                <input type="url" id="engine-url">
+              </div>
+              <div class="form-group">
+                <label>API Key (Optional)</label>
+                <input type="password" id="api-key">
+              </div>
+              <button id="test-connection-btn" class="btn-secondary">Test Connection</button>
+              <span id="connection-status-modal"></span>
+            </section>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
         <button id="save-settings-btn" class="btn-primary">Save & Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="video-player-modal" class="modal hidden">
+    <div class="modal-content player-panel">
+      <div class="modal-header">
+        <h2 id="player-video-title">Video Preview</h2>
+        <button class="close-modal" id="close-player-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <video id="player-video-element" controls autoplay></video>
+      </div>
+      <div class="modal-footer">
+        <a id="player-download-link" href="#" download class="btn-primary"><i class="fas fa-download"></i> Download Video</a>
       </div>
     </div>
   </div>

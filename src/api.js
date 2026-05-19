@@ -1,15 +1,13 @@
 const STORAGE_KEY_URL = 'autoreel_engine_url';
 const STORAGE_KEY_API_KEY = 'autoreel_api_key';
 
-// Default config
 const DEFAULT_URL = 'http://localhost:8000';
 
 export const Config = {
   getEngineUrl: () => localStorage.getItem(STORAGE_KEY_URL) || DEFAULT_URL,
   getApiKey: () => localStorage.getItem(STORAGE_KEY_API_KEY) || '',
-  
   save: (url, key) => {
-    localStorage.setItem(STORAGE_KEY_URL, url.replace(/\/$/, '')); // Remove trailing slash
+    localStorage.setItem(STORAGE_KEY_URL, url.replace(/\/$/, ''));
     localStorage.setItem(STORAGE_KEY_API_KEY, key);
   }
 };
@@ -25,38 +23,52 @@ class ApiError extends Error {
 async function request(endpoint, options = {}) {
   const baseUrl = Config.getEngineUrl();
   const apiKey = Config.getApiKey();
-
   const headers = options.headers || {};
   if (apiKey) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
-
-  // Ensure endpoint starts with /
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${baseUrl}${path}`;
+
+  window.dispatchEvent(new CustomEvent('api-request', { detail: {
+    type: options.method || 'GET',
+    url: url,
+    authState: apiKey ? 'API Key Present' : 'No API Key',
+  }}));
 
   try {
     const response = await fetch(url, { ...options, headers });
     
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        errorData = { message: response.statusText };
-      }
-      throw new ApiError(errorData.message || 'API Request Failed', response.status, errorData);
-    }
-
-    // Return JSON if content-type is json, otherwise blob or text? 
-    // For this app, mostly JSON.
+    let responseData = null;
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      return await response.json();
+      responseData = await response.json();
     }
-    return response; // Return raw response for blobs/downloads if needed manually
+
+    if (!response.ok) {
+      const message = responseData?.message || responseData?.detail || responseData?.error || response.statusText;
+      const error = new ApiError(message, response.status, responseData);
+      window.dispatchEvent(new CustomEvent('api-response', { detail: {
+        status: response.status,
+        error: error.message,
+      }}));
+      throw error;
+    }
+    
+    window.dispatchEvent(new CustomEvent('api-response', { detail: {
+        status: response.status,
+        error: null,
+      }}));
+
+    return responseData || response;
   } catch (err) {
     console.error('API Error:', err);
+    if (!err.status) { // Network or other fetch error
+        window.dispatchEvent(new CustomEvent('api-response', { detail: {
+            status: 'Network Error',
+            error: err.message,
+        }}));
+    }
     throw err;
   }
 }
@@ -66,48 +78,21 @@ export const Api = {
     const formData = new FormData();
     files.forEach(file => formData.append('images[]', file));
     formData.append('instructions', instructions);
-
-    // Upload can take time, maybe increase timeout if we had an abort controller, 
-    // but fetch default is usually generous.
-    return await request('/v1/jobs', {
-      method: 'POST',
-      body: formData
-      // Note: Content-Type header not set manually for FormData, browser handles it + boundary
-    });
+    return await request('/v1/jobs', { method: 'POST', body: formData });
   },
-
-  getJob: async (jobId) => {
-    return await request(`/v1/jobs/${jobId}`);
-  },
-
-  // Helper to construct full artifact URL for use in hrefs/src attributes
-  getArtifactUrl: (jobId, filename) => {
-    const baseUrl = Config.getEngineUrl();
-    const apiKey = Config.getApiKey();
-    return `${baseUrl}/v1/artifacts/${jobId}/${filename}`; 
-  },
-
-  chat: async (messages) => {
-    // Expects messages: [{ role: 'user', content: '...' }, ...]
-    return await request('/v1/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages })
-    });
-  },
-
+  getJob: async (jobId) => await request(`/v1/jobs/${jobId}`),
+  getArtifactUrl: (jobId, filename) => `${Config.getEngineUrl()}/v1/artifacts/${jobId}/${filename}`,
+  chat: async (messages) => await request('/v1/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages })
+  }),
   testConnection: async () => {
     try {
-      // We expect 405 Method Not Allowed (since it's a POST endpoint)
-      // or 200 OK if the engine implements GET listing.
-      // Any response from the server means it is reachable.
-      const response = await request('/v1/jobs', { method: 'GET' });
-      return true; // If request succeeds (even if 405 handled inside request wrapper?), wait.
-      // request() wrapper throws on !ok. 
-      // We need to catch specific status inside or handle it here.
+      await request('/v1/jobs', { method: 'GET' });
+      return true;
     } catch (err) {
-      // 405 is actually "Success" for reachability here
-      if (err.status === 405) return true;
+      if (err.status === 405) return true; // Method Not Allowed is a success for connectivity test
       throw err;
     }
   }

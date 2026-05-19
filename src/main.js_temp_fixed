@@ -1,0 +1,191 @@
+import { Api, Config } from './api.js';
+
+const STORAGE_KEY_SESSIONS = 'autoreel_video_sessions';
+const STORAGE_KEY_SESSION_PREFIX = 'autoreel_video_session_';
+
+// --- State ---
+const State = {
+  sessions: [],
+  currentSessionId: null,
+  files: [],
+  activeJobId: null,
+  currentMessage: '',
+  lastUserPrompt: '',
+  chatMessages: [],
+  pendingGenerationRequest: null,
+  generationApproved: false,
+  submittedPrompt: '',
+  isProcessing: false,
+  engineConnected: false,
+  pollInterval: null,
+  pollFailures: 0
+};
+
+// --- DOM Elements ---
+const DOM = {
+  // App Bar
+  engineStatus: document.getElementById('engine-status'),
+  statusText: document.querySelector('.status-text'),
+  brandHome: document.getElementById('brand-home'),
+  profileMenuTrigger: document.getElementById('profile-menu-trigger'),
+  profileMenu: document.getElementById('profile-menu'),
+  menuProfile: document.getElementById('menu-profile'),
+  menuSettings: document.getElementById('menu-settings'),
+  menuEngineMonitor: document.getElementById('menu-engine-monitor'),
+  sessionsSidebar: document.getElementById('sessions-sidebar'),
+  sidebarToggle: document.getElementById('sidebar-toggle'),
+  newSessionBtn: document.getElementById('new-session-btn'),
+  sessionList: document.getElementById('session-list'),
+  
+  // Workspace
+  createView: document.getElementById('create-view'),
+  profileView: document.getElementById('profile-view'),
+  userNameInput: document.getElementById('user-name'),
+  userEmailInput: document.getElementById('user-email'),
+  saveProfileBtn: document.getElementById('save-profile-btn'),
+  profileSaveStatus: document.getElementById('profile-save-status'),
+  engineMonitorView: document.getElementById('engine-monitor-view'),
+  backToCreateBtn: document.getElementById('back-to-create-btn'),
+  dropZone: document.getElementById('drop-zone'),
+  fileInput: document.getElementById('file-input'),
+  previewGrid: document.getElementById('file-preview-grid'),
+  photoCountLabel: document.getElementById('photo-count-label'),
+  instructionsInput: document.getElementById('instructions-input'),
+  axiaMessage: document.getElementById('axia-message'),
+  reviewBtn: document.getElementById('review-job-btn'),
+  axiaReviewCard: document.getElementById('axia-review-card'),
+  axiaTranscriptTitle: document.getElementById('axia-transcript-title'),
+  axiaTranscriptSubtitle: document.getElementById('axia-transcript-subtitle'),
+  axiaReviewDetails: document.getElementById('axia-review-details'),
+  submitBtn: document.getElementById('submit-job-btn'),
+  generateAnotherBtn: document.getElementById('generate-another-btn'),
+  dealerProgressCard: document.getElementById('dealer-progress-card'),
+  dealerProgressLabel: document.getElementById('dealer-progress-label'),
+  dealerProgressFill: document.getElementById('dealer-progress-fill'),
+  dealerProgressSteps: document.querySelectorAll('[data-friendly-stage]'),
+
+  // Operations / Pipeline
+  pipelineCard: document.getElementById('pipeline-card'),
+  jobIdDisplay: document.getElementById('job-id-display'),
+  pipelineEmptyState: document.getElementById('pipeline-empty-state'),
+  pipelineStages: document.getElementById('pipeline-stages'),
+  pipelineError: document.getElementById('pipeline-error'),
+  stages: document.querySelectorAll('.stage'),
+
+  // Artifacts
+  artifactsCard: document.getElementById('artifacts-card'),
+  artifactsContent: document.getElementById('artifacts-content'),
+  resultSummary: document.getElementById('primary-result-summary'),
+  videoPreview: document.getElementById('primary-video-preview'),
+  scriptPreview: document.getElementById('script-preview'),
+  artifactLinks: document.getElementById('artifact-links'),
+  advancedDetails: document.getElementById('advanced-job-details'),
+  advancedDetailsContent: document.getElementById('advanced-job-details-content'),
+  monitorPhotoCount: document.getElementById('monitor-photo-count'),
+  monitorInstructionsSummary: document.getElementById('monitor-instructions-summary'),
+  monitorEngineUrl: document.getElementById('monitor-engine-url'),
+  monitorAuthState: document.getElementById('monitor-auth-state'),
+  monitorRequestType: document.getElementById('monitor-request-type'),
+  monitorRequestUrl: document.getElementById('monitor-request-url'),
+  monitorResponseStatus: document.getElementById('monitor-response-status'),
+  monitorErrorSummary: document.getElementById('monitor-error-summary'),
+
+  // Settings Modal
+  settingsModal: document.getElementById('settings-modal'),
+  closeModal: document.querySelector('.close-modal'),
+  saveSettingsBtn: document.getElementById('save-settings-btn'),
+  gotoProfileBtn: document.getElementById('goto-profile-btn'),
+  engineUrlInput: document.getElementById('engine-url'),
+  apiKeyInput: document.getElementById('api-key'),
+  testConnectionBtn: document.getElementById('test-connection-btn'),
+  connectionStatusModal: document.getElementById('connection-status-modal'),
+};
+
+// --- Initialization ---
+function init() {
+  setupEventListeners();
+  loadSessions();
+  loadSettings();
+  loadProfile();
+  updateSubmitState();
+  checkEngineConnection();
+}
+
+function setupEventListeners() {
+  // Navigation and settings
+  DOM.brandHome.addEventListener('click', showCreateView);
+  DOM.backToCreateBtn.addEventListener('click', showCreateView);
+  DOM.profileMenuTrigger.addEventListener('click', toggleProfileMenu);
+  DOM.menuProfile.addEventListener('click', () => {
+    closeProfileMenu();
+    showProfileView();
+  });
+  DOM.menuSettings.addEventListener('click', () => {
+    closeProfileMenu();
+    DOM.settingsModal.classList.remove('hidden');
+  });
+  DOM.menuEngineMonitor.addEventListener('click', () => {
+    closeProfileMenu();
+    showEngineMonitor();
+  });
+  document.addEventListener('click', (e) => {
+    if (!DOM.profileMenu.contains(e.target) && !DOM.profileMenuTrigger.contains(e.target)) {
+      closeProfileMenu();
+    }
+  });
+  DOM.closeModal.addEventListener('click', () => DOM.settingsModal.classList.add('hidden'));
+  if (DOM.gotoProfileBtn) {
+    DOM.gotoProfileBtn.addEventListener('click', () => {
+      DOM.settingsModal.classList.add('hidden');
+      showProfileView();
+    });
+  }
+  DOM.saveProfileBtn.addEventListener('click', saveProfile);
+  DOM.testConnectionBtn.addEventListener('click', testConnectionModal);
+  DOM.instructionsInput.addEventListener('input', () => {
+    updateSubmitState();
+    updateMonitorSummary();
+    autoResizeTextarea();
+  });
+  if (DOM.instructionsInput) {
+    DOM.instructionsInput.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      if (event.shiftKey) {
+        return;
+      }
+      event.preventDefault();
+      console.log("[AutoReel] Enter pressed in Axia composer");
+      handleSendToAxia();
+    });
+  }
+  DOM.generateAnotherBtn.addEventListener('click', resetCreateFlow);
+  DOM.sidebarToggle.addEventListener('click', toggleSessionsSidebar);
+  DOM.newSessionBtn.addEventListener('click', resetCreateFlow);
+
+  // Drag and Drop
+  DOM.dropZone.addEventListener('click', () => DOM.fileInput.click());
+  DOM.dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    DOM.dropZone.classList.add('dragover');
+  });
+  DOM.dropZone.addEventListener('dragleave', () => DOM.dropZone.classList.remove('dragover'));
+  DOM.dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    DOM.dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+  DOM.fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFiles(e.target.files);
+  });
+
+  window.addEventListener('apiRequestEvent', (e) => {
+    if (DOM.monitorRequestType) DOM.monitorRequestType.textContent = e.detail.type;
+    if (DOM.monitorRequestUrl) DOM.monitorRequestUrl.textContent = e.detail.url;
+    if (DOM.monitorResponseStatus) DOM.monitorResponseStatus.textContent = e.detail.status;
+    if (DOM.monitorErrorSummary) DOM.monitorErrorSummary.textContent = e.detail.error;
+  });
+
+  // Submit
+  DOM.reviewBtn.addEventListener('click', handleSendToAxia);
+  DOM.submitBtn.addEventListener('click', submitJob);
+}

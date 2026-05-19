@@ -1,7 +1,7 @@
 {
   "name": "tradora-autoreel-ui",
   "version": "1.0.0",
-  "description": "AutoReel UI for Tradora",
+  "description": "AutoReel UI",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
